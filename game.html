@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NPS Parser & RAP Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-6 font-sans">
+
+    <div class="max-w-5xl mx-auto">
+        <header class="mb-10">
+            <h1 class="text-4xl font-extrabold text-blue-500 mb-2">NPS Parser Tool</h1>
+            <p class="text-slate-400">Kelola data PS3_GAMES.tsv dan buat file .RAP secara otomatis.</p>
+        </header>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+            <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
+                <label class="block mb-3 text-sm font-semibold text-blue-300 uppercase tracking-wider">1. Upload Database (.tsv)</label>
+                <input type="file" id="fileInput" accept=".tsv" 
+                       class="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-6 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer transition-all">
+            </div>
+
+            <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
+                <label class="block mb-3 text-sm font-semibold text-blue-300 uppercase tracking-wider">2. Cari Game</label>
+                <input type="text" id="searchInput" placeholder="Ketik Title ID atau Nama Game..." 
+                       class="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-600 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all">
+            </div>
+        </div>
+
+        <div id="result" class="grid grid-cols-1 gap-6">
+            </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const searchInput = document.getElementById('searchInput');
+        const resultDiv = document.getElementById('result');
+        let gameData = [];
+
+        // Fungsi Membaca TSV
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = (event) => {
+                const content = event.target.result;
+                const lines = content.split('\n');
+                gameData = lines.slice(1).map(line => {
+                    const cols = line.split('\t');
+                    return {
+                        titleId: cols[0],
+                        region: cols[1],
+                        name: cols[2],
+                        pkgLink: cols[3],
+                        rapKey: cols[4],
+                        contentId: cols[5]
+                    };
+                });
+                alert('Database siap! Silakan lakukan pencarian.');
+            };
+            reader.readAsText(file);
+        });
+
+        // Fungsi Generate & Download File .RAP
+        function downloadRap(contentId, rapKey) {
+            if (!rapKey || rapKey === 'MISSING' || rapKey === 'NOT REQUIRED') {
+                alert('Game ini tidak memerlukan file .RAP atau datanya tidak tersedia.');
+                return;
+            }
+
+            // Membersihkan spasi jika ada
+            const cleanKey = rapKey.trim();
+            
+            // Konversi HEX string ke Byte Array
+            const bytes = new Uint8Array(cleanKey.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+            const blob = new Blob([bytes], { type: "application/octet-stream" });
+            
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `${contentId}.rap`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // Render Hasil Pencarian
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            if (term.length < 3) {
+                resultDiv.innerHTML = '';
+                return;
+            }
+
+            const filtered = gameData.filter(g => 
+                (g.name && g.name.toLowerCase().includes(term)) || 
+                (g.titleId && g.titleId.toLowerCase().includes(term))
+            ).slice(0, 15);
+
+            resultDiv.innerHTML = filtered.map(g => `
+                <div class="bg-slate-800 p-6 rounded-xl border-t-4 border-blue-600 shadow-2xl transition-transform hover:scale-[1.01]">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <span class="text-xs font-bold bg-blue-900 text-blue-200 px-2 py-1 rounded uppercase">${g.region}</span>
+                            <h3 class="text-2xl font-bold mt-2">${g.name}</h3>
+                            <p class="text-slate-400 font-mono text-sm">${g.titleId}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                        <div class="space-y-3">
+                            <p class="text-sm font-semibold text-slate-300">PKG Direct Link:</p>
+                            <input readonly value="${g.pkgLink}" class="w-full bg-slate-900 p-2 rounded border border-slate-700 text-xs text-blue-400 focus:ring-1 focus:ring-blue-500">
+                            <button onclick="navigator.clipboard.writeText('${g.pkgLink}'); alert('Link disalin!')" 
+                                    class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded transition-colors">
+                                Salin Link ke JDownloader
+                            </button>
+                        </div>
+                        
+                        <div class="bg-slate-900/50 p-4 rounded-lg border border-slate-700/50 flex flex-col justify-between">
+                            <div>
+                                <p class="text-sm font-semibold text-green-400 mb-1">Status Lisensi:</p>
+                                <p class="text-xs text-slate-400 truncate font-mono">${g.contentId || 'No Content ID'}</p>
+                            </div>
+                            <button onclick="downloadRap('${g.contentId}', '${g.rapKey}')" 
+                                    class="w-full mt-4 bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg transition-all shadow-lg shadow-green-900/20">
+                                Download .RAP File
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        });
+    </script>
+</body>
+</html>
