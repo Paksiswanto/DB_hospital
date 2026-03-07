@@ -3,38 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NPS Tool v3 - Auto Save Mode</title>
+    <title>NPS Parser Tool v3.2 - Final Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-6 font-sans">
 
     <div class="max-w-5xl mx-auto">
-        <header class="mb-10 flex justify-between items-end">
+        <header class="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
             <div>
-                <h1 class="text-4xl font-extrabold text-blue-500 mb-2">NPS Parser v3.0</h1>
-                <p class="text-slate-400">Database tersimpan otomatis di browser laptop kamu.</p>
+                <h1 class="text-4xl font-extrabold text-blue-500 mb-2 tracking-tight">NPS Parser v3.2</h1>
+                <p class="text-slate-400">Database tersimpan otomatis. Siap eksekusi ke FAT32!</p>
             </div>
-            <div id="dbStatus" class="text-xs font-mono bg-slate-800 px-3 py-2 rounded border border-slate-700 text-red-400">
-                Database: Kosong
+            <div id="dbStatus" class="text-xs font-mono bg-slate-800 px-4 py-2 rounded-full border border-slate-700 text-red-400 shadow-inner">
+                Status Database: Kosong
             </div>
         </header>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-            <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
-                <label class="block mb-3 text-sm font-semibold text-blue-300 uppercase tracking-wider">Update Database (.tsv)</label>
+            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-2xl">
+                <label class="block mb-3 text-sm font-bold text-blue-300 uppercase tracking-widest">Update Database (.tsv)</label>
                 <input type="file" id="fileInput" accept=".tsv" 
-                       class="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-6 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer transition-all">
-                <p class="mt-2 text-[10px] text-slate-500">*Cukup upload sekali, akan diingat selamanya.</p>
+                       class="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer transition-all">
+                <p class="mt-3 text-[10px] text-slate-500 italic">*Data akan diingat browser laptop Infinix kamu.</p>
             </div>
 
-            <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
-                <label class="block mb-3 text-sm font-semibold text-blue-300 uppercase tracking-wider">Cari Game (FIFA, Naruto, dll)</label>
-                <input type="text" id="searchInput" placeholder="Ketik Title ID atau Nama..." 
-                       class="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-600 focus:ring-2 focus:ring-blue-400 focus:outline-none transition-all">
+            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-2xl">
+                <label class="block mb-3 text-sm font-bold text-blue-300 uppercase tracking-widest">Cari Game PS3</label>
+                <input type="text" id="searchInput" placeholder="Ketik Nama (Naruto, FIFA, dll)..." 
+                       class="w-full p-3 rounded-xl bg-slate-950 border border-slate-600 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all placeholder:text-slate-600">
             </div>
         </div>
 
-        <div id="result" class="grid grid-cols-1 gap-6 pb-20">
+        <div id="result" class="grid grid-cols-1 gap-4 pb-20">
             </div>
     </div>
 
@@ -46,13 +46,18 @@
         const dbStatus = document.getElementById('dbStatus');
 
         window.onload = () => {
-            const savedData = localStorage.getItem('nps_db');
+            const savedData = localStorage.getItem('nps_db_v3');
             if (savedData) {
                 gameData = JSON.parse(savedData);
-                dbStatus.innerText = `Database: ${gameData.length} Game Tersimpan`;
-                dbStatus.classList.replace('text-red-400', 'text-green-400');
+                updateUIStatus();
             }
         };
+
+        function updateUIStatus() {
+            dbStatus.innerText = `Database Ready: ${gameData.length.toLocaleString()} Games`;
+            dbStatus.classList.replace('text-red-400', 'text-green-400');
+            dbStatus.classList.add('border-green-900', 'bg-green-950/20');
+        }
 
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -67,30 +72,34 @@
                         id: cols[0], reg: cols[1], name: cols[2], 
                         pkg: cols[3], rap: cols[4], cid: cols[5]
                     };
-                }).filter(g => g.name); 
+                }).filter(g => g.name && g.pkg); 
 
-                localStorage.setItem('nps_db', JSON.stringify(gameData));
-                dbStatus.innerText = `Database: ${gameData.length} Game Tersimpan`;
-                dbStatus.classList.replace('text-red-400', 'text-green-400');
-                alert('Database Berhasil Diupload & Disimpan!');
+                localStorage.setItem('nps_db_v3', JSON.stringify(gameData));
+                updateUIStatus();
+                alert('Database Berhasil Disimpan di Browser!');
             };
             reader.readAsText(file);
         });
 
         function downloadRap(cid, rapKey) {
-            if (!rapKey || rapKey.includes('MISSING')) {
-                alert('RAP Key tidak ditemukan!'); return;
+            if (!rapKey || rapKey.includes('MISSING') || rapKey.includes('NOT REQUIRED')) {
+                alert('RAP Key tidak tersedia untuk game ini!'); return;
             }
-            const cleanKey = rapKey.trim();
-            const bytes = new Uint8Array(cleanKey.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-            const blob = new Blob([bytes], { type: "application/octet-stream" });
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = `${cid}.rap`;
-            a.click();
+            try {
+                const cleanKey = rapKey.trim();
+                const bytes = new Uint8Array(cleanKey.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+                const blob = new Blob([bytes], { type: "application/octet-stream" });
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = `${cid}.rap`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            } catch (err) {
+                alert('Gagal generate RAP. Pastikan format HEX benar.');
+            }
         }
 
-        // 4. FUNGSI PENCARIAN
         searchInput.addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase();
             if (term.length < 3) { resultDiv.innerHTML = ''; return; }
@@ -98,29 +107,41 @@
             const filtered = gameData.filter(g => 
                 (g.name && g.name.toLowerCase().includes(term)) || 
                 (g.id && g.id.toLowerCase().includes(term))
-            ).slice(0, 10);
+            ).slice(0, 15);
 
-            resultDiv.innerHTML = filtered.map(g => `
-                <div class="bg-slate-800 p-5 rounded-xl border-l-4 border-blue-500 shadow-lg">
+            resultDiv.innerHTML = filtered.map(g => {
+                const isMissing = !g.rap || g.rap.includes('MISSING') || g.rap.includes('NOT REQUIRED');
+                
+                return `
+                <div class="bg-slate-800 p-6 rounded-2xl border-l-4 ${isMissing ? 'border-amber-600' : 'border-blue-600'} shadow-lg hover:bg-slate-700/50 transition-all">
                     <div class="flex justify-between items-start">
                         <div>
-                            <span class="text-[10px] font-bold bg-slate-700 px-2 py-0.5 rounded text-blue-300 uppercase">${g.reg}</span>
-                            <h3 class="text-xl font-bold text-white mt-1">${g.name}</h3>
-                            <p class="text-xs text-slate-400 font-mono">${g.id}</p>
+                            <span class="text-[10px] font-bold bg-slate-900 px-3 py-1 rounded-full text-blue-400 uppercase tracking-tighter border border-blue-900">${g.reg}</span>
+                            <h3 class="text-xl font-bold text-white mt-2">${g.name}</h3>
+                            <p class="text-xs text-slate-500 font-mono mt-1">${g.id}</p>
                         </div>
                     </div>
-                    <div class="mt-4 flex flex-col md:flex-row gap-3">
+                    
+                    <div class="mt-5 flex flex-wrap gap-3">
                         <button onclick="navigator.clipboard.writeText('${g.pkg}'); alert('Link PKG disalin!')" 
-                                class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2 px-4 rounded transition-all">
+                                class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2.5 px-5 rounded-xl transition-all shadow-lg shadow-blue-900/20">
                             Salin Link PKG
                         </button>
-                        <button onclick="downloadRap('${g.cid}', '${g.rap}')" 
-                                class="bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2 px-4 rounded transition-all">
-                            Download .RAP
-                        </button>
+                        
+                        ${isMissing ? 
+                            `<button disabled class="bg-slate-700 text-slate-500 text-xs font-bold py-2.5 px-5 rounded-xl cursor-not-allowed border border-slate-600">
+                                RAP Missing / Not Required
+                            </button>` : 
+                            `<button onclick="downloadRap('${g.cid}', '${g.rap}')" 
+                                class="bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2.5 px-5 rounded-xl transition-all shadow-lg shadow-green-900/20">
+                                Download .RAP File
+                            </button>`
+                        }
                     </div>
+                    ${isMissing ? `<p class="mt-3 text-[10px] text-amber-500/80 italic font-mono bg-amber-950/20 p-2 rounded-lg border border-amber-900/30">Lapor: Game ini mungkin tidak membutuhkan lisensi atau data RAP-nya belum disumbangkan ke NPS.</p>` : ''}
                 </div>
-            `).join('');
+                `;
+            }).join('');
         });
     </script>
 </body>
