@@ -1,148 +1,615 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NPS Parser Tool v3.2 - Final Edition</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NPS Parser v4.0</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root[data-theme="dark"] {
+  --bg: #0d0f12; --surface: #13151a; --surface2: #1a1d24; --surface3: #20232d;
+  --border: #272b36; --text: #e6e8f0; --text-muted: #5a6278; --text-dim: #8b93a8;
+  --accent: #4a84f5; --accent-soft: rgba(74,132,245,0.1); --accent-hover: #6b9dff;
+  --green: #2dd4a0; --green-soft: rgba(45,212,160,0.1); --green-hover: #1ab88a;
+  --warn: #f5a623; --warn-soft: rgba(245,166,35,0.1);
+  --danger: #f56565;
+  --shadow: 0 8px 32px rgba(0,0,0,0.5); --shadow-sm: 0 2px 10px rgba(0,0,0,0.35);
+}
+:root[data-theme="light"] {
+  --bg: #f0f2f7; --surface: #ffffff; --surface2: #f5f7fc; --surface3: #ebeef6;
+  --border: #dde1ec; --text: #0f1117; --text-muted: #9299aa; --text-dim: #525c70;
+  --accent: #2563eb; --accent-soft: rgba(37,99,235,0.08); --accent-hover: #1d4ed8;
+  --green: #059669; --green-soft: rgba(5,150,105,0.08); --green-hover: #047857;
+  --warn: #d97706; --warn-soft: rgba(217,119,6,0.08);
+  --danger: #dc2626;
+  --shadow: 0 8px 32px rgba(0,0,0,0.08); --shadow-sm: 0 2px 10px rgba(0,0,0,0.06);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .25s,color .25s;font-size:14px;line-height:1.5}
+
+/* LOADING */
+#loadScreen{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px}
+.load-ico{font-size:42px;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.4;transform:scale(.95)}50%{opacity:1;transform:scale(1)}}
+.load-title{font-size:18px;font-weight:600}
+.load-bar-wrap{width:260px;height:4px;background:var(--surface2);border-radius:10px;overflow:hidden}
+.load-bar{height:100%;background:var(--accent);border-radius:10px;width:0%;transition:width .3s ease}
+.load-sub{font-size:12px;color:var(--text-muted);font-family:'DM Mono',monospace}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:1px solid var(--border);height:54px;display:flex;align-items:center;padding:0 24px;gap:12px;box-shadow:var(--shadow-sm)}
+.logo{display:flex;align-items:center;gap:9px;flex:1}
+.logo-mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#7c3aed);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff}
+.logo-name{font-size:15px;font-weight:600;letter-spacing:-.3px}
+.logo-ver{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);background:var(--surface2);border:1px solid var(--border);padding:1px 6px;border-radius:4px}
+.header-actions{display:flex;align-items:center;gap:8px}
+.icon-btn{width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .15s;position:relative}
+.icon-btn:hover{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.notif-dot{position:absolute;top:-3px;right:-3px;width:15px;height:15px;border-radius:50%;background:var(--accent);color:#fff;font-size:8px;font-weight:700;display:none;align-items:center;justify-content:center;font-family:'DM Mono',monospace}
+.notif-dot.show{display:flex}
+
+/* WRAP */
+.wrap{max-width:1080px;margin:0 auto;padding:24px 18px 48px}
+
+/* STATUS STRIP */
+.status-strip{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 18px;margin-bottom:16px;flex-wrap:wrap}
+.strip-left{flex:1;min-width:0}
+.strip-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:4px}
+.strip-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--text-muted);flex-shrink:0}
+.dot.on{background:var(--green);box-shadow:0 0 5px var(--green)}
+.dot.err{background:var(--danger)}
+.strip-text{font-size:13px;color:var(--text-dim)}
+.pill{font-family:'DM Mono',monospace;font-size:11px;background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent);border-radius:5px;padding:1px 8px;font-weight:500}
+.pill.green{background:var(--green-soft);color:var(--green);border-color:var(--green)}
+.btn-reload{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 13px;font-size:12px;font-weight:500;color:var(--text-dim);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap}
+.btn-reload:hover{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+
+/* TABS */
+.tabs{display:flex;gap:6px;margin-bottom:16px}
+.tab{padding:8px 18px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text-dim);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;user-select:none}
+.tab:hover{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* SEARCH */
+.search-block{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:20px;display:flex;flex-direction:column;gap:11px}
+.search-box{position:relative}
+.search-ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none;font-size:14px}
+.search-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:9px 12px 9px 34px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border .15s}
+.search-input:focus{border-color:var(--accent)}
+.search-input::placeholder{color:var(--text-muted)}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fsel{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text-dim);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;cursor:pointer;min-width:120px;transition:border .15s}
+.fsel:focus{border-color:var(--accent)}
+.fsel option{background:var(--surface)}
+.chip{display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:12px;color:var(--text-dim);cursor:pointer;transition:all .15s;white-space:nowrap;user-select:none}
+.chip:hover,.chip.on{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
+
+/* RESULT HDR */
+.result-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;padding:0 2px}
+.result-info{font-size:12px;color:var(--text-muted)}
+.result-info b{color:var(--accent);font-family:'DM Mono',monospace;font-weight:500}
+
+/* CARD */
+.game-list{display:flex;flex-direction:column;gap:8px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden;transition:border-color .15s,box-shadow .15s,transform .1s}
+.card:hover{border-color:var(--accent);box-shadow:var(--shadow-sm);transform:translateY(-1px)}
+.card-top{display:grid;grid-template-columns:1fr auto;gap:12px;padding:14px 16px 12px;align-items:start}
+.card-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:5px}
+.tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:5px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.4px;border:1px solid}
+.tag-eu{color:#60a5fa;border-color:rgba(96,165,250,.3);background:rgba(96,165,250,.08)}
+.tag-us{color:#4ade80;border-color:rgba(74,222,128,.3);background:rgba(74,222,128,.08)}
+.tag-jp{color:#f472b6;border-color:rgba(244,114,182,.3);background:rgba(244,114,182,.08)}
+.tag-as{color:#fb923c;border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.08)}
+.tag-kr{color:#a78bfa;border-color:rgba(167,139,250,.3);background:rgba(167,139,250,.08)}
+.tag-hk{color:#38bdf8;border-color:rgba(56,189,248,.3);background:rgba(56,189,248,.08)}
+.tag-def{color:var(--text-muted);border-color:var(--border);background:var(--surface2)}
+.tag-dlc{color:#fb923c;border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.08)}
+.card-name{font-size:15px;font-weight:600;margin-bottom:3px;line-height:1.3}
+.card-id{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted)}
+.card-right{display:flex;align-items:center;gap:6px}
+.btn-wish{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.btn-wish:hover{background:var(--warn-soft);color:var(--warn);border-color:var(--warn)}
+.btn-wish.on{background:var(--warn-soft);color:var(--warn);border-color:var(--warn)}
+.card-bottom{border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr}
+@media(max-width:580px){.card-bottom{grid-template-columns:1fr}}
+.cb-sec{padding:12px 16px}
+.cb-sec+.cb-sec{border-left:1px solid var(--border)}
+@media(max-width:580px){.cb-sec+.cb-sec{border-left:none;border-top:1px solid var(--border)}}
+.cb-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:8px}
+.url-row{display:flex;gap:6px;align-items:center}
+.url-input{flex:1;min-width:0;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:6px 9px;font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.url-input:focus{border-color:var(--accent)}
+.btn-sm{flex-shrink:0;border-radius:7px;border:1px solid var(--border);background:var(--surface3);color:var(--text-dim);padding:6px 11px;font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:4px}
+.btn-sm:hover{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.btn-sm.ok{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.rap-info{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);margin-bottom:8px;word-break:break-all;min-height:16px}
+.btn-rap{width:100%;border-radius:8px;border:none;background:var(--green);color:#fff;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px}
+.btn-rap:hover{background:var(--green-hover);transform:translateY(-1px)}
+.btn-rap:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-rap.na{background:var(--surface3);color:var(--text-muted);border:1px solid var(--border)}
+
+/* EMPTY */
+.empty{text-align:center;padding:64px 20px;color:var(--text-muted)}
+.empty-ico{font-size:44px;margin-bottom:14px;opacity:.4}
+.empty-ttl{font-size:16px;font-weight:600;color:var(--text-dim);margin-bottom:6px}
+.empty-sub{font-size:13px}
+
+/* PAGER */
+.pager{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:22px;flex-wrap:wrap}
+.pg-btn{min-width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-dim);cursor:pointer;font-size:12px;font-weight:500;font-family:'DM Mono',monospace;display:flex;align-items:center;justify-content:center;padding:0 8px;transition:all .15s}
+.pg-btn:hover:not(:disabled):not(.cur){background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.pg-btn.cur{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pg-btn:disabled{opacity:.3;cursor:not-allowed}
+
+/* WISHLIST PANEL */
+.overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.55);backdrop-filter:blur(5px);display:none;align-items:flex-start;justify-content:flex-end;padding:14px}
+.overlay.open{display:flex}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:360px;max-height:calc(100vh - 28px);display:flex;flex-direction:column;box-shadow:var(--shadow);overflow:hidden;animation:panelIn .2s ease}
+@keyframes panelIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+.panel-hdr{padding:15px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.panel-title{font-size:15px;font-weight:600}
+.panel-body{overflow-y:auto;flex:1;padding:10px 12px}
+.wi{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);margin-bottom:6px}
+.wi-info{flex:1;min-width:0}
+.wi-name{font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wi-id{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted)}
+.wi-type{font-size:9px;color:var(--warn);font-weight:600;text-transform:uppercase}
+.wi-del{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;transition:color .15s;padding:2px}
+.wi-del:hover{color:var(--danger)}
+.panel-ftr{padding:12px 16px;border-top:1px solid var(--border)}
+.btn-export{width:100%;background:var(--accent);color:#fff;border:none;border-radius:9px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s}
+.btn-export:hover{background:var(--accent-hover)}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(50px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 18px;font-size:13px;font-weight:500;box-shadow:var(--shadow);opacity:0;pointer-events:none;z-index:500;transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .3s;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px}
+
+@media(max-width:640px){
+  .wrap{padding:14px 10px 40px}
+  .card-top{grid-template-columns:1fr}
+  .card-right{justify-content:flex-end}
+  .panel{width:100%}
+}
+</style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen p-6 font-sans">
+<body>
 
-    <div class="max-w-5xl mx-auto">
-        <header class="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-            <div>
-                <h1 class="text-4xl font-extrabold text-blue-500 mb-2 tracking-tight">NPS Parser v3.2</h1>
-                <p class="text-slate-400">Database tersimpan otomatis. Siap eksekusi ke FAT32!</p>
-            </div>
-            <div id="dbStatus" class="text-xs font-mono bg-slate-800 px-4 py-2 rounded-full border border-slate-700 text-red-400 shadow-inner">
-                Status Database: Kosong
-            </div>
-        </header>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-2xl">
-                <label class="block mb-3 text-sm font-bold text-blue-300 uppercase tracking-widest">Update Database (.tsv)</label>
-                <input type="file" id="fileInput" accept=".tsv" 
-                       class="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer transition-all">
-                <p class="mt-3 text-[10px] text-slate-500 italic">*Data akan diingat browser laptop Infinix kamu.</p>
-            </div>
+<!-- LOADING -->
+<div id="loadScreen">
+  <div class="load-ico">📀</div>
+  <div class="load-title">NPS Parser v4.0</div>
+  <div class="load-bar-wrap"><div class="load-bar" id="loadBar"></div></div>
+  <div class="load-sub" id="loadSub">Memuat database…</div>
+</div>
 
-            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-2xl">
-                <label class="block mb-3 text-sm font-bold text-blue-300 uppercase tracking-widest">Cari Game PS3</label>
-                <input type="text" id="searchInput" placeholder="Ketik Nama (Naruto, FIFA, dll)..." 
-                       class="w-full p-3 rounded-xl bg-slate-950 border border-slate-600 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all placeholder:text-slate-600">
-            </div>
-        </div>
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">N</div>
+    <span class="logo-name">NPS Parser</span>
+    <span class="logo-ver">v4.0</span>
+  </div>
+  <div class="header-actions">
+    <button class="icon-btn" id="themeBtn" title="Toggle tema">🌙</button>
+    <button class="icon-btn" id="wishBtn" title="Wishlist">♡
+      <div class="notif-dot" id="wishDot">0</div>
+    </button>
+  </div>
+</header>
 
-        <div id="result" class="grid grid-cols-1 gap-4 pb-20">
-            </div>
+<div class="wrap">
+
+  <!-- STATUS -->
+  <div class="status-strip">
+    <div class="strip-left">
+      <div class="strip-label">Database</div>
+      <div class="strip-row">
+        <div class="dot" id="dotG"></div>
+        <span class="strip-text" id="txtG">Memuat PS3_GAMES…</span>
+        <span class="pill" id="pillG" style="display:none"></span>
+        <span style="color:var(--border);margin:0 6px">·</span>
+        <div class="dot" id="dotD"></div>
+        <span class="strip-text" id="txtD">Memuat PS3_DLCS…</span>
+        <span class="pill green" id="pillD" style="display:none"></span>
+      </div>
     </div>
+    <button class="btn-reload" id="reloadBtn">↺ Reload</button>
+  </div>
 
-    <script>
-        let gameData = [];
-        const fileInput = document.getElementById('fileInput');
-        const searchInput = document.getElementById('searchInput');
-        const resultDiv = document.getElementById('result');
-        const dbStatus = document.getElementById('dbStatus');
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" id="tabG" onclick="switchTab('games')">🎮 Games</button>
+    <button class="tab" id="tabD" onclick="switchTab('dlcs')">📦 DLC</button>
+  </div>
 
-        window.onload = () => {
-            const savedData = localStorage.getItem('nps_db_v3');
-            if (savedData) {
-                gameData = JSON.parse(savedData);
-                updateUIStatus();
-            }
-        };
+  <!-- SEARCH -->
+  <div class="search-block">
+    <div class="search-box">
+      <span class="search-ico">🔍</span>
+      <input type="text" class="search-input" id="searchInput" placeholder="Cari nama game atau Title ID…" />
+    </div>
+    <div class="filter-row">
+      <select class="fsel" id="filterRegion">
+        <option value="">Semua Region</option>
+        <option value="EU">🇪🇺 EU</option>
+        <option value="US">🇺🇸 US</option>
+        <option value="JP">🇯🇵 JP</option>
+        <option value="AS">🌏 AS</option>
+        <option value="KR">🇰🇷 KR</option>
+        <option value="HK">🇭🇰 HK</option>
+      </select>
+      <select class="fsel" id="sortSelect">
+        <option value="">Urutan Default</option>
+        <option value="az">A → Z</option>
+        <option value="za">Z → A</option>
+        <option value="size-desc">Ukuran Terbesar</option>
+        <option value="size-asc">Ukuran Terkecil</option>
+      </select>
+      <button class="chip" id="wishChip">♡ Wishlist Saja</button>
+    </div>
+  </div>
 
-        function updateUIStatus() {
-            dbStatus.innerText = `Database Ready: ${gameData.length.toLocaleString()} Games`;
-            dbStatus.classList.replace('text-red-400', 'text-green-400');
-            dbStatus.classList.add('border-green-900', 'bg-green-950/20');
-        }
+  <!-- RESULT HEADER -->
+  <div class="result-hdr" id="resultHdr" style="display:none">
+    <span class="result-info">Menampilkan <b id="resultCount">0</b> hasil</span>
+  </div>
 
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            const reader = new FileReader();
+  <!-- LIST -->
+  <div class="game-list" id="gameList">
+    <div class="empty"><div class="empty-ico">⏳</div><div class="empty-ttl">Memuat database…</div></div>
+  </div>
+  <div class="pager" id="pager"></div>
 
-            reader.onload = (event) => {
-                const content = event.target.result;
-                const lines = content.split('\n');
-                gameData = lines.slice(1).map(line => {
-                    const cols = line.split('\t');
-                    return {
-                        id: cols[0], reg: cols[1], name: cols[2], 
-                        pkg: cols[3], rap: cols[4], cid: cols[5]
-                    };
-                }).filter(g => g.name && g.pkg); 
+</div>
 
-                localStorage.setItem('nps_db_v3', JSON.stringify(gameData));
-                updateUIStatus();
-                alert('Database Berhasil Disimpan di Browser!');
-            };
-            reader.readAsText(file);
-        });
+<!-- WISHLIST PANEL -->
+<div class="overlay" id="overlay">
+  <div class="panel">
+    <div class="panel-hdr">
+      <span class="panel-title">♡ Wishlist</span>
+      <button class="icon-btn" id="panelClose" style="border:none;background:none;font-size:16px">✕</button>
+    </div>
+    <div class="panel-body" id="wishBody"></div>
+    <div class="panel-ftr">
+      <button class="btn-export" id="exportBtn">Export Wishlist (.txt)</button>
+    </div>
+  </div>
+</div>
 
-        function downloadRap(cid, rapKey) {
-            if (!rapKey || rapKey.includes('MISSING') || rapKey.includes('NOT REQUIRED')) {
-                alert('RAP Key tidak tersedia untuk game ini!'); return;
-            }
-            try {
-                const cleanKey = rapKey.trim();
-                const bytes = new Uint8Array(cleanKey.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-                const blob = new Blob([bytes], { type: "application/octet-stream" });
-                const a = document.createElement("a");
-                a.href = URL.createObjectURL(blob);
-                a.download = `${cid}.rap`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            } catch (err) {
-                alert('Gagal generate RAP. Pastikan format HEX benar.');
-            }
-        }
+<div class="toast" id="toast"></div>
 
-        searchInput.addEventListener('input', (e) => {
-            const term = e.target.value.toLowerCase();
-            if (term.length < 3) { resultDiv.innerHTML = ''; return; }
+<script>
+// ── STATE ──
+let dbGames = [], dbDlcs = [];
+let activeTab = 'games';
+let wishlist = JSON.parse(localStorage.getItem('nps4_wish') || '[]');
+let page = 1;
+const PER = 30;
+let wishOnly = false;
 
-            const filtered = gameData.filter(g => 
-                (g.name && g.name.toLowerCase().includes(term)) || 
-                (g.id && g.id.toLowerCase().includes(term))
-            ).slice(0, 15);
+// ── THEME ──
+let theme = localStorage.getItem('nps4_theme') || 'dark';
+applyTheme();
+document.getElementById('themeBtn').addEventListener('click', () => {
+  theme = theme === 'dark' ? 'light' : 'dark';
+  applyTheme(); localStorage.setItem('nps4_theme', theme);
+});
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeBtn').textContent = theme === 'dark' ? '🌙' : '☀️';
+}
 
-            resultDiv.innerHTML = filtered.map(g => {
-                const isMissing = !g.rap || g.rap.includes('MISSING') || g.rap.includes('NOT REQUIRED');
-                
-                return `
-                <div class="bg-slate-800 p-6 rounded-2xl border-l-4 ${isMissing ? 'border-amber-600' : 'border-blue-600'} shadow-lg hover:bg-slate-700/50 transition-all">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <span class="text-[10px] font-bold bg-slate-900 px-3 py-1 rounded-full text-blue-400 uppercase tracking-tighter border border-blue-900">${g.reg}</span>
-                            <h3 class="text-xl font-bold text-white mt-2">${g.name}</h3>
-                            <p class="text-xs text-slate-500 font-mono mt-1">${g.id}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-5 flex flex-wrap gap-3">
-                        <button onclick="navigator.clipboard.writeText('${g.pkg}'); alert('Link PKG disalin!')" 
-                                class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2.5 px-5 rounded-xl transition-all shadow-lg shadow-blue-900/20">
-                            Salin Link PKG
-                        </button>
-                        
-                        ${isMissing ? 
-                            `<button disabled class="bg-slate-700 text-slate-500 text-xs font-bold py-2.5 px-5 rounded-xl cursor-not-allowed border border-slate-600">
-                                RAP Missing / Not Required
-                            </button>` : 
-                            `<button onclick="downloadRap('${g.cid}', '${g.rap}')" 
-                                class="bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2.5 px-5 rounded-xl transition-all shadow-lg shadow-green-900/20">
-                                Download .RAP File
-                            </button>`
-                        }
-                    </div>
-                    ${isMissing ? `<p class="mt-3 text-[10px] text-amber-500/80 italic font-mono bg-amber-950/20 p-2 rounded-lg border border-amber-900/30">Lapor: Game ini mungkin tidak membutuhkan lisensi atau data RAP-nya belum disumbangkan ke NPS.</p>` : ''}
-                </div>
-                `;
-            }).join('');
-        });
-    </script>
+// ── LOAD TSV FROM ROOT ──
+function setBar(p) { document.getElementById('loadBar').style.width = p + '%'; }
+function setSub(t) { document.getElementById('loadSub').textContent = t; }
+
+async function loadAll() {
+  try {
+    setSub('Memuat PS3_GAMES.tsv…'); setBar(10);
+    const [rawG, rawD] = await Promise.all([
+      fetch('PS3_GAMES.tsv').then(r => { if(!r.ok) throw new Error('PS3_GAMES.tsv tidak ditemukan ('+r.status+')'); return r.text(); }),
+      fetch('PS3_DLCS.tsv').then(r  => { if(!r.ok) throw new Error('PS3_DLCS.tsv tidak ditemukan ('+r.status+')');  return r.text(); })
+    ]);
+    setBar(75); setSub('Memproses data…');
+
+    dbGames = parseTSV(rawG);
+    dbDlcs  = parseTSV(rawD);
+    setBar(100);
+    setSub(dbGames.length.toLocaleString() + ' games · ' + dbDlcs.length.toLocaleString() + ' DLC');
+
+    // status dots
+    setDotOk('dotG', 'txtG', 'pillG', 'PS3_GAMES siap', dbGames.length, false);
+    setDotOk('dotD', 'txtD', 'pillD', 'PS3_DLCS siap',  dbDlcs.length,  true);
+
+    setTimeout(() => { document.getElementById('loadScreen').style.display = 'none'; render(); }, 400);
+  } catch(err) {
+    setSub('❌ ' + err.message);
+    document.getElementById('loadBar').style.background = 'var(--danger)';
+    ['dotG','dotD'].forEach(id => { const e=document.getElementById(id); e.classList.remove('on'); e.classList.add('err'); });
+    document.getElementById('txtG').textContent = 'Gagal — pastikan PS3_GAMES.tsv ada di root';
+    document.getElementById('txtD').textContent = 'Gagal — pastikan PS3_DLCS.tsv ada di root';
+    setTimeout(() => { document.getElementById('loadScreen').style.display = 'none'; }, 2500);
+  }
+}
+
+function setDotOk(dotId, txtId, pillId, label, count, green) {
+  document.getElementById(dotId).classList.add('on');
+  document.getElementById(txtId).textContent = label;
+  const p = document.getElementById(pillId);
+  p.textContent = count.toLocaleString() + ' entries';
+  p.style.display = '';
+  if (green) p.classList.add('green');
+}
+
+function parseTSV(raw) {
+  // cols: Title ID(0) | Region(1) | Name(2) | PKG direct link(3) | RAP(4) | Content ID(5) | Date(6) | _(7) | File Size(8) | SHA256(9)
+  const lines = raw.split('\n');
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const c = lines[i].split('\t');
+    if (c.length < 3) continue;
+    const id   = (c[0]||'').trim();
+    const name = (c[2]||'').trim();
+    if (!id && !name) continue;
+    rows.push({
+      id, name,
+      region:    (c[1]||'').trim().toUpperCase(),
+      pkg:       (c[3]||'').trim(),
+      rap:       (c[4]||'').trim(),
+      contentId: (c[5]||'').trim(),
+      size:      parseInt((c[8]||'0').trim(), 10) || 0,
+    });
+  }
+  return rows;
+}
+
+document.getElementById('reloadBtn').addEventListener('click', () => {
+  document.getElementById('loadScreen').style.display = 'flex';
+  setBar(0); setSub('Memuat ulang…'); loadAll();
+});
+
+loadAll();
+
+// ── TAB ──
+function switchTab(t) {
+  activeTab = t;
+  document.getElementById('tabG').classList.toggle('active', t==='games');
+  document.getElementById('tabD').classList.toggle('active', t==='dlcs');
+  page = 1; render();
+}
+
+// ── FILTER ──
+function activeDB() { return activeTab === 'games' ? dbGames : dbDlcs; }
+
+function filtered() {
+  const q  = document.getElementById('searchInput').value.toLowerCase().trim();
+  const rg = document.getElementById('filterRegion').value.toUpperCase();
+  const so = document.getElementById('sortSelect').value;
+
+  let list = activeDB().filter(g => {
+    if (!q && !rg && !wishOnly) return true;
+    const mQ = !q  || g.name.toLowerCase().includes(q) || g.id.toLowerCase().includes(q);
+    const mR = !rg || g.region === rg;
+    const mW = !wishOnly || wishlist.includes(g.id + '|' + activeTab);
+    return mQ && mR && mW;
+  });
+
+  if (so === 'az') list.sort((a,b) => a.name.localeCompare(b.name));
+  if (so === 'za') list.sort((a,b) => b.name.localeCompare(a.name));
+  if (so === 'size-desc') list.sort((a,b) => b.size - a.size);
+  if (so === 'size-asc')  list.sort((a,b) => a.size - b.size);
+  return list;
+}
+
+// ── RENDER ──
+function render() {
+  const list  = filtered();
+  const total = list.length;
+  const slice = list.slice((page-1)*PER, page*PER);
+  const loaded = activeDB().length > 0;
+
+  document.getElementById('resultHdr').style.display = loaded ? 'flex' : 'none';
+  document.getElementById('resultCount').textContent = total.toLocaleString();
+  const el = document.getElementById('gameList');
+
+  if (!loaded) {
+    el.innerHTML = `<div class="empty"><div class="empty-ico">⏳</div><div class="empty-ttl">Memuat database…</div></div>`;
+    renderPager(0); return;
+  }
+  if (!slice.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-ico">🔍</div><div class="empty-ttl">Tidak ada hasil</div><div class="empty-sub">Coba kata kunci lain atau ubah filter</div></div>`;
+    renderPager(0); return;
+  }
+
+  el.innerHTML = slice.map(cardHTML).join('');
+  renderPager(total);
+}
+
+function tagCls(r) {
+  return ({EU:'tag-eu',US:'tag-us',JP:'tag-jp',AS:'tag-as',KR:'tag-kr',HK:'tag-hk'})[r] || 'tag-def';
+}
+function fmtSize(b) {
+  if (!b) return '';
+  const mb = b / 1048576;
+  return mb >= 1024 ? (mb/1024).toFixed(2)+' GB' : mb.toFixed(0)+' MB';
+}
+function rapSt(r) {
+  if (!r || r.toUpperCase()==='NOT REQUIRED') return 'nr';
+  if (r.toUpperCase()==='MISSING') return 'miss';
+  return 'ok';
+}
+
+function cardHTML(g) {
+  const wKey  = g.id + '|' + activeTab;
+  const wishe = wishlist.includes(wKey);
+  const rs    = rapSt(g.rap);
+  const hasPkg = g.pkg && g.pkg.startsWith('http');
+  const sz    = fmtSize(g.size);
+
+  const rapLbl = rs==='ok' ? '⬇ Download .RAP' : rs==='nr' ? '✓ Tidak Perlu RAP' : '✗ RAP Tidak Tersedia';
+  const rapCls = rs==='ok' ? '' : 'na';
+  const rapDis = rs==='ok' ? '' : 'disabled';
+  const rapInfo = rs==='ok' ? esc(g.rap).slice(0,36)+(g.rap.length>36?'…':'') : rs==='nr' ? 'Tidak diperlukan' : 'Data tidak ada';
+
+  const eId  = esc(g.id);
+  const eName = esc(g.name||'—');
+  const ePkg = esc(g.pkg);
+  const eRap = esc(g.rap);
+  const eCid = esc(g.contentId);
+
+  return `<div class="card">
+    <div class="card-top">
+      <div>
+        <div class="card-meta">
+          ${g.region ? `<span class="tag ${tagCls(g.region)}">${esc(g.region)}</span>` : ''}
+          ${activeTab==='dlcs' ? '<span class="tag tag-dlc">DLC</span>' : ''}
+          ${g.id ? `<span class="tag tag-def">${eId}</span>` : ''}
+          ${sz ? `<span class="tag tag-def">${sz}</span>` : ''}
+        </div>
+        <div class="card-name">${eName}</div>
+        ${g.contentId ? `<div class="card-id">${eCid}</div>` : ''}
+      </div>
+      <div class="card-right">
+        <button class="btn-wish ${wishe?'on':''}" onclick="toggleWish('${eId}','${activeTab}',this)">${wishe?'♥':'♡'}</button>
+      </div>
+    </div>
+    <div class="card-bottom">
+      <div class="cb-sec">
+        <div class="cb-label">PKG Direct Link</div>
+        ${hasPkg
+          ? `<div class="url-row">
+               <input class="url-input" readonly value="${ePkg}" />
+               <button class="btn-sm" onclick="copyPkg(this,'${ePkg}')">⬇ Salin</button>
+             </div>`
+          : `<div style="font-size:12px;color:var(--text-muted);margin-top:4px">Link tidak tersedia</div>`}
+      </div>
+      <div class="cb-sec">
+        <div class="cb-label">Lisensi .RAP</div>
+        <div class="rap-info">${rapInfo}</div>
+        <button class="btn-rap ${rapCls}" ${rapDis} onclick="downloadRap('${eCid}','${eRap}')">${rapLbl}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── COPY PKG ──
+function copyPkg(btn, url) {
+  navigator.clipboard.writeText(url).then(() => {
+    btn.textContent='✓ Disalin'; btn.classList.add('ok');
+    toast('✓ Link disalin ke clipboard');
+    setTimeout(()=>{btn.textContent='⬇ Salin';btn.classList.remove('ok');}, 2000);
+  }).catch(()=>toast('❌ Gagal menyalin',true));
+}
+
+// ── DOWNLOAD RAP ──
+function downloadRap(contentId, rapKey) {
+  const k = (rapKey||'').replace(/\s/g,'');
+  if (!k || k.toUpperCase()==='MISSING' || k.toUpperCase()==='NOTREQUIRED') {
+    toast('⚠ RAP tidak tersedia',true); return;
+  }
+  try {
+    const bytes = new Uint8Array(k.match(/.{1,2}/g).map(b=>parseInt(b,16)));
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([bytes],{type:'application/octet-stream'}));
+    a.download = (contentId||'game')+'.rap';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    toast('✓ File .RAP diunduh');
+  } catch { toast('❌ RAP key tidak valid',true); }
+}
+
+// ── WISHLIST ──
+function toggleWish(id, type, btn) {
+  const key = id+'|'+type;
+  const i = wishlist.indexOf(key);
+  if (i>=0) { wishlist.splice(i,1); btn.textContent='♡'; btn.classList.remove('on'); toast('Dihapus dari wishlist'); }
+  else       { wishlist.push(key);   btn.textContent='♥'; btn.classList.add('on');    toast('♥ Ditambahkan ke wishlist'); }
+  localStorage.setItem('nps4_wish', JSON.stringify(wishlist));
+  updateWishDot(); renderWishPanel();
+}
+function updateWishDot() {
+  const d=document.getElementById('wishDot');
+  d.textContent=wishlist.length; d.classList.toggle('show',wishlist.length>0);
+}
+updateWishDot();
+
+document.getElementById('wishBtn').addEventListener('click', ()=>{ document.getElementById('overlay').classList.add('open'); renderWishPanel(); });
+document.getElementById('panelClose').addEventListener('click', ()=>document.getElementById('overlay').classList.remove('open'));
+document.getElementById('overlay').addEventListener('click', e=>{ if(e.target===e.currentTarget) e.currentTarget.classList.remove('open'); });
+
+function renderWishPanel() {
+  const el = document.getElementById('wishBody');
+  if (!wishlist.length) {
+    el.innerHTML=`<div class="empty" style="padding:32px 10px"><div class="empty-ico">♡</div><div class="empty-ttl">Wishlist kosong</div><div class="empty-sub">Klik ♡ di kartu untuk menambahkan</div></div>`;
+    return;
+  }
+  el.innerHTML = wishlist.map(wk => {
+    const [id, type] = wk.split('|');
+    const g = (type==='games' ? dbGames : dbDlcs).find(x=>x.id===id);
+    return `<div class="wi">
+      <div class="wi-info">
+        <div class="wi-name">${esc(g?g.name:id)}</div>
+        <div class="wi-id">${esc(id)} · <span class="wi-type">${type==='dlcs'?'DLC':'Game'}</span></div>
+      </div>
+      <button class="wi-del" onclick="removeWish('${esc(wk)}')">✕</button>
+    </div>`;
+  }).join('');
+}
+function removeWish(wk) {
+  wishlist=wishlist.filter(x=>x!==wk);
+  localStorage.setItem('nps4_wish',JSON.stringify(wishlist));
+  updateWishDot(); renderWishPanel(); render(); toast('Dihapus dari wishlist');
+}
+document.getElementById('exportBtn').addEventListener('click',()=>{
+  if (!wishlist.length) { toast('Wishlist masih kosong',true); return; }
+  const txt = wishlist.map(wk=>{
+    const [id,type]=wk.split('|');
+    const g=(type==='games'?dbGames:dbDlcs).find(x=>x.id===id);
+    return g?`[${type.toUpperCase()}]\t${g.id}\t${g.name}\t${g.pkg||''}`:`[UNKNOWN]\t${id}`;
+  }).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));
+  a.download='wishlist_ps3.txt'; a.click(); toast('✓ Wishlist diekspor');
+});
+
+document.getElementById('wishChip').addEventListener('click', function(){
+  wishOnly=!wishOnly;
+  this.classList.toggle('on',wishOnly);
+  this.textContent=wishOnly?'♥ Semua':'♡ Wishlist Saja';
+  page=1; render();
+});
+
+// ── EVENTS ──
+document.getElementById('searchInput').addEventListener('input', ()=>{ page=1; render(); });
+document.getElementById('filterRegion').addEventListener('change', ()=>{ page=1; render(); });
+document.getElementById('sortSelect').addEventListener('change', ()=>{ page=1; render(); });
+
+// ── PAGINATION ──
+function renderPager(total) {
+  const pages=Math.ceil(total/PER);
+  const el=document.getElementById('pager');
+  if (pages<=1){el.innerHTML='';return;}
+  let h=`<button class="pg-btn" ${page===1?'disabled':''} onclick="goPage(${page-1})">‹</button>`;
+  let s=Math.max(1,page-2),e=Math.min(pages,s+4);
+  if(e-s<4) s=Math.max(1,e-4);
+  for(let p=s;p<=e;p++) h+=`<button class="pg-btn ${p===page?'cur':''}" onclick="goPage(${p})">${p}</button>`;
+  h+=`<button class="pg-btn" ${page===pages?'disabled':''} onclick="goPage(${page+1})">›</button>`;
+  el.innerHTML=h;
+}
+function goPage(p){page=p;render();window.scrollTo({top:0,behavior:'smooth'});}
+
+// ── TOAST + ESC ──
+let toastT;
+function toast(msg,err=false){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.style.color=err?'var(--danger)':'var(--text)';
+  el.classList.add('show'); clearTimeout(toastT);
+  toastT=setTimeout(()=>el.classList.remove('show'),2400);
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+</script>
 </body>
 </html>
