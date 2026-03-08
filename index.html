@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>NPS Parser v4.0</title>
+<title>NPS Parser v4.1</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <style>
 :root[data-theme="dark"] {
@@ -168,11 +168,57 @@ header{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px}
 
+/* ── GAME DETAIL MODAL ── */
+.modal-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:560px;max-height:90vh;display:flex;flex-direction:column;box-shadow:var(--shadow);overflow:hidden;animation:modalIn .22s cubic-bezier(.34,1.4,.64,1)}
+@keyframes modalIn{from{opacity:0;transform:scale(.94) translateY(10px)}to{opacity:1;transform:none}}
+.modal-hdr{padding:18px 20px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.modal-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:8px}
+.modal-title{font-size:18px;font-weight:700;line-height:1.3;margin-bottom:4px}
+.modal-cid{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted)}
+.modal-body{overflow-y:auto;flex:1;padding:16px 20px}
+.modal-section{margin-bottom:18px}
+.modal-section:last-child{margin-bottom:0}
+.ms-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:8px}
+.ms-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.ms-key{font-size:12px;color:var(--text-muted);width:90px;flex-shrink:0}
+.ms-val{font-family:'DM Mono',monospace;font-size:12px;color:var(--text-dim);flex:1;word-break:break-all}
+.ms-val.accent{color:var(--accent)}
+.ms-val.green{color:var(--green)}
+.ms-val.warn{color:var(--warn)}
+.ms-val.muted{color:var(--text-muted)}
+.modal-url-row{display:flex;gap:6px;align-items:center;margin-top:4px}
+.modal-url-input{flex:1;min-width:0;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.modal-url-input:focus{border-color:var(--accent)}
+.modal-ftr{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0}
+.btn-modal-main{flex:1;background:var(--green);color:#fff;border:none;border-radius:9px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px}
+.btn-modal-main:hover{background:var(--green-hover)}
+.btn-modal-main:disabled{opacity:.4;cursor:not-allowed}
+.btn-modal-main.na{background:var(--surface2);color:var(--text-muted);border:1px solid var(--border)}
+.btn-modal-sec{background:var(--surface2);color:var(--text-dim);border:1px solid var(--border);border-radius:9px;padding:10px 14px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.btn-modal-sec:hover{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.btn-modal-sec.ok{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.modal-close-btn{width:30px;height:30px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s;flex-shrink:0}
+.modal-close-btn:hover{background:var(--danger);color:#fff;border-color:var(--danger)}
+
+/* ── RANDOM PICKER ── */
+.btn-random{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0 12px;height:34px;font-size:12px;font-weight:500;color:var(--text-dim);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap}
+.btn-random:hover{background:var(--warn-soft);color:var(--warn);border-color:var(--warn)}
+.btn-random .dice{display:inline-block;transition:transform .3s}
+.btn-random:hover .dice{transform:rotate(180deg)}
+
+/* clickable game name */
+.card-name-link{cursor:pointer;transition:color .15s}
+.card-name-link:hover{color:var(--accent)}
+
 @media(max-width:640px){
   .wrap{padding:14px 10px 40px}
   .card-top{grid-template-columns:1fr}
   .card-right{justify-content:flex-end}
   .panel{width:100%}
+  .modal{max-width:100%;border-radius:14px}
+  .modal-ftr{flex-wrap:wrap}
 }
 </style>
 </head>
@@ -191,9 +237,10 @@ header{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom
   <div class="logo">
     <div class="logo-mark">N</div>
     <span class="logo-name">NPS Parser</span>
-    <span class="logo-ver">v4.0</span>
+    <span class="logo-ver">v4.1</span>
   </div>
   <div class="header-actions">
+    <button class="btn-random" id="randomBtn" title="Pilih game acak"><span class="dice">🎲</span> Surprise Me</button>
     <button class="icon-btn" id="themeBtn" title="Toggle tema">🌙</button>
     <button class="icon-btn" id="wishBtn" title="Wishlist">♡
       <div class="notif-dot" id="wishDot">0</div>
@@ -203,7 +250,6 @@ header{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom
 
 <div class="wrap">
 
-  <!-- STATUS -->
   <div class="status-strip">
     <div class="strip-left">
       <div class="strip-label">Database</div>
@@ -220,13 +266,11 @@ header{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom
     <button class="btn-reload" id="reloadBtn">↺ Reload</button>
   </div>
 
-  <!-- TABS -->
   <div class="tabs">
     <button class="tab active" id="tabG" onclick="switchTab('games')">🎮 Games</button>
     <button class="tab" id="tabD" onclick="switchTab('dlcs')">📦 DLC</button>
   </div>
 
-  <!-- SEARCH -->
   <div class="search-block">
     <div class="search-box">
       <span class="search-ico">🔍</span>
@@ -253,17 +297,32 @@ header{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom
     </div>
   </div>
 
-  <!-- RESULT HEADER -->
   <div class="result-hdr" id="resultHdr" style="display:none">
     <span class="result-info">Menampilkan <b id="resultCount">0</b> hasil</span>
   </div>
 
-  <!-- LIST -->
   <div class="game-list" id="gameList">
     <div class="empty"><div class="empty-ico">⏳</div><div class="empty-ttl">Memuat database…</div></div>
   </div>
   <div class="pager" id="pager"></div>
 
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <div class="modal-hdr">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div class="modal-meta" id="modalMeta"></div>
+          <div class="modal-title" id="modalTitle"></div>
+          <div class="modal-cid" id="modalCid"></div>
+        </div>
+        <button class="modal-close-btn" id="modalClose">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-ftr" id="modalFtr"></div>
+  </div>
 </div>
 
 <!-- WISHLIST PANEL -->
@@ -283,7 +342,6 @@ header{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom
 <div class="toast" id="toast"></div>
 
 <script>
-// ── STATE ──
 let dbGames = [], dbDlcs = [];
 let activeTab = 'games';
 let wishlist = JSON.parse(localStorage.getItem('nps4_wish') || '[]');
@@ -291,7 +349,6 @@ let page = 1;
 const PER = 30;
 let wishOnly = false;
 
-// ── THEME ──
 let theme = localStorage.getItem('nps4_theme') || 'dark';
 applyTheme();
 document.getElementById('themeBtn').addEventListener('click', () => {
@@ -303,7 +360,6 @@ function applyTheme() {
   document.getElementById('themeBtn').textContent = theme === 'dark' ? '🌙' : '☀️';
 }
 
-// ── LOAD TSV FROM ROOT ──
 function setBar(p) { document.getElementById('loadBar').style.width = p + '%'; }
 function setSub(t) { document.getElementById('loadSub').textContent = t; }
 
@@ -321,7 +377,6 @@ async function loadAll() {
     setBar(100);
     setSub(dbGames.length.toLocaleString() + ' games · ' + dbDlcs.length.toLocaleString() + ' DLC');
 
-    // status dots
     setDotOk('dotG', 'txtG', 'pillG', 'PS3_GAMES siap', dbGames.length, false);
     setDotOk('dotD', 'txtD', 'pillD', 'PS3_DLCS siap',  dbDlcs.length,  true);
 
@@ -346,7 +401,6 @@ function setDotOk(dotId, txtId, pillId, label, count, green) {
 }
 
 function parseTSV(raw) {
-  // cols: Title ID(0) | Region(1) | Name(2) | PKG direct link(3) | RAP(4) | Content ID(5) | Date(6) | _(7) | File Size(8) | SHA256(9)
   const lines = raw.split('\n');
   const rows = [];
   for (let i = 1; i < lines.length; i++) {
@@ -374,7 +428,6 @@ document.getElementById('reloadBtn').addEventListener('click', () => {
 
 loadAll();
 
-// ── TAB ──
 function switchTab(t) {
   activeTab = t;
   document.getElementById('tabG').classList.toggle('active', t==='games');
@@ -382,7 +435,6 @@ function switchTab(t) {
   page = 1; render();
 }
 
-// ── FILTER ──
 function activeDB() { return activeTab === 'games' ? dbGames : dbDlcs; }
 
 function filtered() {
@@ -405,7 +457,6 @@ function filtered() {
   return list;
 }
 
-// ── RENDER ──
 function render() {
   const list  = filtered();
   const total = list.length;
@@ -470,7 +521,7 @@ function cardHTML(g) {
           ${g.id ? `<span class="tag tag-def">${eId}</span>` : ''}
           ${sz ? `<span class="tag tag-def">${sz}</span>` : ''}
         </div>
-        <div class="card-name">${eName}</div>
+        <div class="card-name card-name-link" onclick="openModal('${esc(g.id)}','${activeTab}')">${eName}</div>
         ${g.contentId ? `<div class="card-id">${eCid}</div>` : ''}
       </div>
       <div class="card-right">
@@ -496,7 +547,6 @@ function cardHTML(g) {
   </div>`;
 }
 
-// ── COPY PKG ──
 function copyPkg(btn, url) {
   navigator.clipboard.writeText(url).then(() => {
     btn.textContent='✓ Disalin'; btn.classList.add('ok');
@@ -505,8 +555,7 @@ function copyPkg(btn, url) {
   }).catch(()=>toast('❌ Gagal menyalin',true));
 }
 
-// ── DOWNLOAD RAP ──
-function downloadRap(contentId, rapKey) {
+ function downloadRap(contentId, rapKey) {
   const k = (rapKey||'').replace(/\s/g,'');
   if (!k || k.toUpperCase()==='MISSING' || k.toUpperCase()==='NOTREQUIRED') {
     toast('⚠ RAP tidak tersedia',true); return;
@@ -521,7 +570,6 @@ function downloadRap(contentId, rapKey) {
   } catch { toast('❌ RAP key tidak valid',true); }
 }
 
-// ── WISHLIST ──
 function toggleWish(id, type, btn) {
   const key = id+'|'+type;
   const i = wishlist.indexOf(key);
@@ -582,12 +630,10 @@ document.getElementById('wishChip').addEventListener('click', function(){
   page=1; render();
 });
 
-// ── EVENTS ──
 document.getElementById('searchInput').addEventListener('input', ()=>{ page=1; render(); });
 document.getElementById('filterRegion').addEventListener('change', ()=>{ page=1; render(); });
 document.getElementById('sortSelect').addEventListener('change', ()=>{ page=1; render(); });
 
-// ── PAGINATION ──
 function renderPager(total) {
   const pages=Math.ceil(total/PER);
   const el=document.getElementById('pager');
@@ -601,7 +647,103 @@ function renderPager(total) {
 }
 function goPage(p){page=p;render();window.scrollTo({top:0,behavior:'smooth'});}
 
-// ── TOAST + ESC ──
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalOverlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+
+function openModal(id, type) {
+  const db = type==='games' ? dbGames : dbDlcs;
+  const g  = db.find(x => x.id === id);
+  if (!g) return;
+
+  const wKey   = id+'|'+type;
+  const wished = wishlist.includes(wKey);
+  const rs     = rapSt(g.rap);
+  const hasPkg = g.pkg && g.pkg.startsWith('http');
+  const sz     = fmtSize(g.size);
+
+  document.getElementById('modalMeta').innerHTML =
+    (g.region ? `<span class="tag ${tagCls(g.region)}">${esc(g.region)}</span>` : '') +
+    (type==='dlcs' ? '<span class="tag tag-dlc">DLC</span>' : '<span class="tag tag-def">PS3</span>') +
+    (sz ? `<span class="tag tag-def">${sz}</span>` : '');
+  document.getElementById('modalTitle').textContent = g.name || '—';
+  document.getElementById('modalCid').textContent   = g.contentId || '';
+
+  const rapColor = rs==='ok' ? 'green' : rs==='nr' ? 'muted' : 'warn';
+  const rapText  = rs==='ok' ? g.rap : rs==='nr' ? 'Tidak diperlukan' : 'Tidak tersedia';
+
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-section">
+      <div class="ms-label">Informasi Game</div>
+      <div class="ms-row"><span class="ms-key">Title ID</span><span class="ms-val accent">${esc(g.id||'—')}</span></div>
+      <div class="ms-row"><span class="ms-key">Region</span><span class="ms-val">${esc(g.region||'—')}</span></div>
+      <div class="ms-row"><span class="ms-key">Ukuran</span><span class="ms-val">${sz||'—'}</span></div>
+      ${g.date ? `<div class="ms-row"><span class="ms-key">Diperbarui</span><span class="ms-val muted">${esc(g.date)}</span></div>` : ''}
+    </div>
+    <div class="modal-section">
+      <div class="ms-label">PKG Direct Link</div>
+      ${hasPkg
+        ? `<div class="modal-url-row">
+             <input class="modal-url-input" id="modalPkgInput" readonly value="${esc(g.pkg)}" />
+             <button class="btn-sm" id="modalCopyBtn" onclick="modalCopyPkg()">⬇ Salin</button>
+           </div>`
+        : `<span class="ms-val muted">Link tidak tersedia</span>`}
+    </div>
+    <div class="modal-section">
+      <div class="ms-label">RAP Key</div>
+      <div class="ms-row"><span class="ms-key">Status</span><span class="ms-val ${rapColor}">${rs==='ok'?'Tersedia':rs==='nr'?'Tidak diperlukan':'Tidak ada'}</span></div>
+      ${rs==='ok' ? `<div class="ms-row" style="align-items:flex-start"><span class="ms-key">Key</span><span class="ms-val" style="font-size:10px;line-height:1.6">${esc(g.rap)}</span></div>` : ''}
+    </div>`;
+
+  // footer
+  const rapLbl = rs==='ok' ? '⬇ Download .RAP' : rs==='nr' ? '✓ Tidak Perlu RAP' : '✗ RAP Tidak Tersedia';
+  const rapCls = rs==='ok' ? '' : 'na';
+  const rapDis = rs==='ok' ? '' : 'disabled';
+
+  document.getElementById('modalFtr').innerHTML = `
+    <button class="btn-modal-main ${rapCls}" ${rapDis} onclick="downloadRap('${esc(g.contentId)}','${esc(g.rap)}')">${rapLbl}</button>
+    <button class="btn-modal-sec" id="modalWishBtn" onclick="modalToggleWish('${esc(g.id)}','${type}')">
+      ${wished ? '♥ Wishlisted' : '♡ Wishlist'}
+    </button>`;
+
+  window._modalGame = g;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  window._modalGame = null;
+}
+
+function modalCopyPkg() {
+  const g = window._modalGame; if(!g) return;
+  navigator.clipboard.writeText(g.pkg).then(() => {
+    const btn = document.getElementById('modalCopyBtn');
+    if(btn) { btn.textContent='✓ Disalin'; btn.classList.add('ok'); setTimeout(()=>{btn.textContent='⬇ Salin';btn.classList.remove('ok');},2000); }
+    toast('✓ Link disalin ke clipboard');
+  }).catch(()=>toast('❌ Gagal menyalin',true));
+}
+
+function modalToggleWish(id, type) {
+  const key = id+'|'+type;
+  const i = wishlist.indexOf(key);
+  if (i>=0) { wishlist.splice(i,1); toast('Dihapus dari wishlist'); }
+  else       { wishlist.push(key);   toast('♥ Ditambahkan ke wishlist'); }
+  localStorage.setItem('nps4_wish', JSON.stringify(wishlist));
+  updateWishDot(); renderWishPanel(); render();
+  // update button state in modal
+  const btn = document.getElementById('modalWishBtn');
+  if(btn) btn.textContent = wishlist.includes(key) ? '♥ Wishlisted' : '♡ Wishlist';
+}
+
+document.getElementById('randomBtn').addEventListener('click', () => {
+  const db = activeDB();
+  if (!db.length) { toast('⚠ Database belum dimuat',true); return; }
+  const g = db[Math.floor(Math.random() * db.length)];
+  openModal(g.id, activeTab);
+  toast('🎲 Game acak dipilih!');
+});
+
 let toastT;
 function toast(msg,err=false){
   const el=document.getElementById('toast');
